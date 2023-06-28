@@ -72,5 +72,4 @@ func inorderTraversal(root *TreeNode) []int {
 //leetcode submit region end(Prohibit modification and deletion)
 
 func TestBinaryTreeInorderTraversal(t *testing.T) {
-
 }
