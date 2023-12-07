@@ -81,7 +81,25 @@ type Node struct {
  */
 
 func connect(root *Node) *Node {
-
+	//1.正常思路，遍历，将左节点指向右节点
+	//【完美二叉树】
+	//实际遍历三叉树
+	var traverse func(node1 *Node, node2 *Node)
+	traverse = func(node1 *Node, node2 *Node) {
+		if node1 == nil && node2 == nil {
+			return
+		}
+		node1.Next = node2
+		traverse(node1.Left, node1.Right)
+		traverse(node2.Left, node2.Right)
+		traverse(node1.Right, node2.Left)
+		return
+	}
+	if root == nil {
+		return root
+	}
+	traverse(root.Left, root.Right)
+	return root
 }
 
 //leetcode submit region end(Prohibit modification and deletion)
