@@ -33,12 +33,32 @@ import (
 // Related Topics 树 二叉搜索树 数学 动态规划 二叉树 👍 2277 👎 0
 
 //leetcode submit region begin(Prohibit modification and deletion)
+
+// 组合数=左子树的组合数 x 右子树的组合数
 func numTrees(n int) int {
-	count := 0
-	for i := 1; i < n; i++ {
-		count += numTrees(n) + 1
+	mem := make([][]int, n+1)
+	for i, _ := range mem {
+		mem[i] = make([]int, n+1)
 	}
-	return count
+	var count func(l, r int) int
+	count = func(l, r int) int {
+		//当 lo > hi 闭区间 [lo, hi] 是个空区间，也就对应着空节点 null
+		if l > r {
+			return 1
+		}
+		if mem[l][r] != 0 {
+			return mem[l][r]
+		}
+		result := 0
+		for i := l; i <= r; i++ {
+			left := count(l, i-1)
+			right := count(i+1, r)
+			result += left * right
+		}
+		mem[l][r] = result
+		return result
+	}
+	return count(1, n)
 }
 
 //leetcode submit region end(Prohibit modification and deletion)
