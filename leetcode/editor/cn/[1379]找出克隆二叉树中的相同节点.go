@@ -98,23 +98,23 @@ func getTargetCopy(original *TreeNode, cloned *TreeNode, target *TreeNode) *Tree
 }
 
 // 遍历的思路
-func getTargetCopy(original *TreeNode, cloned *TreeNode, target *TreeNode) *TreeNode {
-	var res *TreeNode
-	var traverse func(original *TreeNode, cloned *TreeNode)
-	traverse = func(original *TreeNode, cloned *TreeNode) {
-		if original == nil || res != nil {
-			return
-		}
-		if original == target {
-			res = cloned
-			return
-		}
-		traverse(original.Left, cloned.Left)
-		traverse(original.Right, cloned.Right)
-	}
-	traverse(original, cloned)
-	return res
-}
+//func getTargetCopy(original *TreeNode, cloned *TreeNode, target *TreeNode) *TreeNode {
+//	var res *TreeNode
+//	var traverse func(original *TreeNode, cloned *TreeNode)
+//	traverse = func(original *TreeNode, cloned *TreeNode) {
+//		if original == nil || res != nil {
+//			return
+//		}
+//		if original == target {
+//			res = cloned
+//			return
+//		}
+//		traverse(original.Left, cloned.Left)
+//		traverse(original.Right, cloned.Right)
+//	}
+//	traverse(original, cloned)
+//	return res
+//}
 
 //leetcode submit region end(Prohibit modification and deletion)
 
