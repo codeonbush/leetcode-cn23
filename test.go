@@ -12,8 +12,7 @@ type TimeRange struct {
 }
 
 // CompareTimeRanges 返回当前时间范围与上一时间范围
-func CompareTimeRanges(granularity string) (currentRange TimeRange, previousRange TimeRange) {
-	now := time.Now()
+func CompareTimeRanges(granularity string, now time.Time) (currentRange TimeRange, previousRange TimeRange) {
 
 	switch granularity {
 	case "minute":
@@ -69,32 +68,56 @@ func CompareTimeRanges(granularity string) (currentRange TimeRange, previousRang
 			Start: previousStart,
 			End:   previousStart.Add(time.Duration(now.Sub(currentStart))),
 		}
-
 	case "month":
+		// 本月开始时间
 		currentStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+
+		// 上月开始时间
 		previousStart := currentStart.AddDate(0, -1, 0)
 
+		// 计算上月的结束时间
+		previousEnd := previousStart.AddDate(0, 1, 0).Add(-time.Nanosecond) // 上月最后一刻
+
+		// 当前时间范围
 		currentRange = TimeRange{
 			Start: currentStart,
 			End:   now,
 		}
+
+		// 上月对应的时间范围
 		previousRange = TimeRange{
 			Start: previousStart,
-			End:   previousStart.Add(time.Duration(now.Sub(currentStart))),
+			End:   previousStart.Add(now.Sub(currentStart)),
 		}
 
+		// 确保上月的结束时间不超过上月的实际结束时间
+		if previousRange.End.After(previousEnd) {
+			previousRange.End = previousEnd
+		}
 	case "quarter":
+		// 计算本季度的开始月份
 		month := (now.Month()-1)/3*3 + 1
 		currentStart := time.Date(now.Year(), month, 1, 0, 0, 0, 0, now.Location())
 		previousStart := currentStart.AddDate(0, -3, 0)
 
+		// 当前季度的时间范围
 		currentRange = TimeRange{
 			Start: currentStart,
 			End:   now,
 		}
+
+		// 计算上季度的实际结束时间
+		previousEnd := previousStart.AddDate(0, 3, 0).Add(-time.Nanosecond) // 上季度的实际结束时间为上季度的最后一刻
+
+		// 上季度的时间范围
 		previousRange = TimeRange{
 			Start: previousStart,
-			End:   previousStart.Add(time.Duration(now.Sub(currentStart))),
+			End:   previousEnd,
+		}
+
+		// 确保上季度的结束时间不超过当前时间
+		if previousRange.End.After(now) {
+			previousRange.End = now
 		}
 
 	default:
@@ -104,28 +127,8 @@ func CompareTimeRanges(granularity string) (currentRange TimeRange, previousRang
 	return
 }
 
-// 获取当前日期是当前月的第几周
-func weekOfMonth(t time.Time) int {
-	// 找到当前月的第一天
-	firstOfMonth := time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, t.Location())
-	// 计算当前日期在这个月的第几周
-	_, week := t.ISOWeek()
-	_, firstWeek := firstOfMonth.ISOWeek()
-	return week - firstWeek + 1
-}
-
-// 获取指定月的周数
-func weeksInMonth(t time.Time) int {
-	// 获取下个月的第一天
-	firstOfNextMonth := time.Date(t.Year(), t.Month()+1, 1, 0, 0, 0, 0, t.Location())
-	// 获取这个月的最后一天
-	lastDayOfMonth := firstOfNextMonth.Add(-time.Nanosecond)
-	return weekOfMonth(lastDayOfMonth)
-}
-
 // CompareTimeRanges 返回当前时间范围与同比时间范围
-func CompareTimeRangesT(granularity string) (currentRange TimeRange, yearOverYearRange TimeRange) {
-	now := time.Now()
+func CompareTimeRangesT(granularity string, now time.Time) (currentRange TimeRange, yearOverYearRange TimeRange) {
 
 	switch granularity {
 	case "minute":
@@ -166,41 +169,30 @@ func CompareTimeRangesT(granularity string) (currentRange TimeRange, yearOverYea
 		}
 
 	case "week":
-		// 获取当前日期在本月的第几周
-		currentWeekOfMonth := weekOfMonth(now)
-		// 计算本周的开始时间，从周一 00:00 开始
-		offset := int(time.Monday - now.Weekday())
-		if offset > 0 {
-			offset = -6
-		}
-		currentWeekStart := time.Date(now.Year(), now.Month(), now.Day()+offset, 0, 0, 0, 0, now.Location())
+		//这段代码计算同比两个时间范围的开始和结束时间，修改这段代码逻辑，
+		//本周至当前分钟，对比本周向前取至四周前的对应周的对应时间。
+		//如：在 8.5，时间范围选8.1~8.5，粒度选「按周」，本周期为8.5 0:00到当前分钟，月同比为 7.8 0:00 到对应当前分钟
+		// 获取当前时间
+		// 本周开始时间，从周一 00:00 开始
+		startOfWeek := now.Truncate(24 * time.Hour).Add(-(time.Duration(now.Weekday()-time.Monday) * 24 * time.Hour))
 
-		// 找到上个月的对应周
-		previousMonth := now.AddDate(0, -1, 0)
-		weeksInPrevMonth := weeksInMonth(previousMonth)
+		// 当前分钟
+		currentMinute := now
 
-		// 如果上个月没有对应的周，则使用上个月的最后一周
-		previousWeekOfMonth := currentWeekOfMonth
-		if currentWeekOfMonth > weeksInPrevMonth {
-			previousWeekOfMonth = weeksInPrevMonth
-		}
+		// 计算四周前开始时间（从周一 00:00 开始至四周前的对应时间）
+		fourWeeksAgoStart := startOfWeek.AddDate(0, 0, -28) // 向前计算 28 天
+		fourWeeksAgoMinute := fourWeeksAgoStart.Truncate(24 * time.Hour).Add(currentMinute.Sub(currentMinute.Truncate(time.Minute)))
 
-		previousMonthWeekStart := time.Date(previousMonth.Year(), previousMonth.Month(), 1, 0, 0, 0, 0, now.Location())
-		previousWeekStart := previousMonthWeekStart.AddDate(0, 0, (previousWeekOfMonth-1)*7)
-		offset = int(time.Monday - previousWeekStart.Weekday())
-		if offset > 0 {
-			offset = -6
-		}
-		previousWeekStart = previousWeekStart.AddDate(0, 0, offset)
-		previousWeekEnd := previousWeekStart.Add(time.Duration(now.Sub(currentWeekStart)))
-
+		// 设置当前时间区间
 		currentRange = TimeRange{
-			Start: currentWeekStart,
-			End:   now,
+			Start: startOfWeek,
+			End:   currentMinute,
 		}
+
+		// 设置四周前的同比时间区间
 		yearOverYearRange = TimeRange{
-			Start: previousWeekStart,
-			End:   previousWeekEnd,
+			Start: fourWeeksAgoMinute,
+			End:   fourWeeksAgoMinute.Add(currentMinute.Sub(startOfWeek)),
 		}
 
 	case "month":
@@ -213,18 +205,24 @@ func CompareTimeRangesT(granularity string) (currentRange TimeRange, yearOverYea
 		}
 		yearOverYearRange = TimeRange{
 			Start: yearOverYearStart,
-			End:   yearOverYearStart.Add(time.Duration(now.Sub(currentStart))),
+			End:   yearOverYearStart.Add(now.Sub(currentStart)),
 		}
 
 	case "quarter":
+		// 计算当前季度的开始月份
 		month := (now.Month()-1)/3*3 + 1
 		currentStart := time.Date(now.Year(), month, 1, 0, 0, 0, 0, now.Location())
+
+		// 计算去年同季度的开始时间
 		yearOverYearStart := currentStart.AddDate(-1, 0, 0)
 
+		// 当前季度的时间范围
 		currentRange = TimeRange{
 			Start: currentStart,
 			End:   now,
 		}
+
+		// 去年同季度的时间范围
 		yearOverYearRange = TimeRange{
 			Start: yearOverYearStart,
 			End:   yearOverYearStart.Add(time.Duration(now.Sub(currentStart))),
@@ -239,14 +237,16 @@ func CompareTimeRangesT(granularity string) (currentRange TimeRange, yearOverYea
 
 func main() {
 	granuarities := []string{"minute", "hour", "day", "week", "month", "quarter"}
+	now, err := time.ParseInLocation("2006-01-02 15:04:05", "2024-07-31 15:18:01", time.Local)
+	fmt.Println(err)
 	for _, granuarity := range granuarities {
-		currentRange, previousRange := CompareTimeRanges(granuarity)
+		currentRange, previousRange := CompareTimeRanges(granuarity, now)
 		fmt.Printf("Current %s range: %v - %v\n", granuarity, currentRange.Start, currentRange.End)
 		fmt.Printf("Previous %s range: %v - %v\n", granuarity, previousRange.Start, previousRange.End)
 	}
 	fmt.Println("========================")
 	for _, granuarity := range granuarities {
-		currentRange, previousRange := CompareTimeRangesT(granuarity)
+		currentRange, previousRange := CompareTimeRangesT(granuarity, now)
 		fmt.Printf("Current %s range: %v - %v\n", granuarity, currentRange.Start, currentRange.End)
 		fmt.Printf("Previous %s range: %v - %v\n", granuarity, previousRange.Start, previousRange.End)
 	}
