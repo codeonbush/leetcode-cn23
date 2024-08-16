@@ -1,53 +1,23 @@
 import os
 import re
-import shutil
 
-# 文件夹路径
-parent_folder_path = '/Users/chester.chen/Pro/workflow/leetcode-cn23'
+def rename_directory(old_name):
+    """Remove brackets and replace them with an underscore."""
+    # 使用正则表达式匹配并替换
+    new_name = re.sub(r'^\[(\d+)\]', r'\1_', old_name)
+    return new_name
 
-# 列出父文件夹中的所有子文件夹
-folders = os.listdir(parent_folder_path)
+def rename_directories(root_dir):
+    """Rename all directories in the root directory that match the pattern."""
+    for dirpath, dirnames, filenames in os.walk(root_dir):
+        for dirname in dirnames:
+            if re.match(r'^\[\d+\]', dirname):
+                new_name = rename_directory(dirname)
+                old_path = os.path.join(dirpath, dirname)
+                new_path = os.path.join(dirpath, new_name)
+                os.rename(old_path, new_path)
+                print(f'Renamed: {old_path} -> {new_path}')
 
-# 创建一个字典来保存规范化的文件夹名称
-folder_dict = {}
-
-# 正则表达式匹配两种类型的文件夹名
-pattern_brackets = re.compile(r'\[(\d+)\](.+)')
-pattern_no_brackets = re.compile(r'(\d+)\.(.+)')
-
-for folder in folders:
-    brackets_match = pattern_brackets.match(folder)
-    no_brackets_match = pattern_no_brackets.match(folder)
-
-    if brackets_match:
-        number = brackets_match.group(1)
-        name = brackets_match.group(2)
-        normalized_name = f'[{number}]{name}'
-        folder_dict[number] = normalized_name  # 使用有括号的文件夹名
-    elif no_brackets_match:
-        number = no_brackets_match.group(1)
-        name = no_brackets_match.group(2)
-        normalized_name = f'[{number}]{name}'
-        if number in folder_dict:
-            # 如果已存在相同编号的有括号文件夹，直接删除无括号的文件夹
-            no_brackets_folder_path = os.path.join(parent_folder_path, folder)
-            shutil.rmtree(no_brackets_folder_path)
-        else:
-            # 如果没有相同编号的有括号文件夹，将无括号的记录下来
-            folder_dict[number] = normalized_name
-
-# 重命名剩余文件夹为统一格式
-for folder in folders:
-    brackets_match = pattern_brackets.match(folder)
-    no_brackets_match = pattern_no_brackets.match(folder)
-    
-    if brackets_match or no_brackets_match:
-        number = brackets_match.group(1) if brackets_match else no_brackets_match.group(1)
-        old_folder_path = os.path.join(parent_folder_path, folder)
-        new_folder_path = os.path.join(parent_folder_path, folder_dict[number])
-        if old_folder_path != new_folder_path:
-            if not os.path.exists(new_folder_path):
-                os.rename(old_folder_path, new_folder_path)
-
-print("文件夹名合并和规范化完成。")
-
+if __name__ == "__main__":
+    root_directory = "."  # 设置为要处理的根目录路径
+    rename_directories(root_directory)
