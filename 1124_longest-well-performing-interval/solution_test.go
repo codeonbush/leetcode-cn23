@@ -1,6 +1,8 @@
 package leetcode
 
 import (
+	"fmt"
+	"reflect"
 	"testing"
 )
 
@@ -38,7 +40,7 @@ import (
  0 <= hours[i] <= 16
 
 
- Related Topics 栈 数组 哈希表 前缀和 单调栈 👍 538 👎 0
+ Related Topics 栈 数组 哈希表 前缀和 单调栈 👍 540 👎 0
 
 */
 
@@ -83,5 +85,23 @@ func max(a, b int) int {
 //leetcode submit region end(Prohibit modification and deletion)
 
 func TestLongestWellPerformingInterval(t *testing.T) {
+	tests := []struct {
+		input    []int
+		expected int
+	}{
+		{
+			input:    []int{9, 9, 6, 0, 6, 6, 9},
+			expected: 3,
+		},
+	}
 
+	for _, test := range tests {
+		t.Run("", func(t *testing.T) {
+			result := longestWPI(test.input)
+			fmt.Println(result)
+			if !reflect.DeepEqual(result, test.expected) {
+				t.Errorf("For heights %v, expected %v but got %v", test.input, test.expected, result)
+			}
+		})
+	}
 }
