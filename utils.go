@@ -94,21 +94,21 @@ func CompareTimeRangesMoM(granularity string, originStart, originEnd time.Time) 
 		}
 	case ByMonth:
 		// 本月开始时间
-		currentStart := time.Date(originEnd.Year(), originEnd.Month(), 1, 0, 0, 0, 0, originEnd.Location())
+		currentMonthStart := time.Date(originEnd.Year(), originEnd.Month(), 1, 0, 0, 0, 0, originEnd.Location())
+		currentStart := currentMonthStart
 		if originStart.After(currentStart) {
 			currentStart = originStart
 		}
+
+		//上月实际开始结束时间
+		d := currentStart.AddDate(0, -1, 0)
+		prevMonthStart := time.Date(d.Year(), d.Month(), 1, 0, 0, 0, 0, time.UTC)
+		prevMonthEnd := time.Date(d.Year(), d.Month()+1, 1, 0, 0, -1, 0, time.UTC)
+
 		// 上月开始时间
-		previousStart := currentStart.AddDate(0, -1, 0)
-
-		// 检查上个月的日期是否有效
-		if previousStart.Day() != currentStart.Day() {
-			// 如果无效，返回上个月的最后一天
-			previousStart = time.Date(previousStart.Year(), previousStart.Month(), 0, previousStart.Hour(), previousStart.Minute(), previousStart.Second(), 0, previousStart.Location())
-		}
-
-		// 计算上月的结束时间
-		previousEnd := previousStart.AddDate(0, 1, 0).Add(-time.Nanosecond) // 上月最后一刻
+		previousStart := prevMonthStart.Add(currentStart.Sub(currentMonthStart))
+		// 上月结束时间
+		previousEnd := previousStart.Add(originEnd.Sub(currentStart))
 
 		// 当前时间范围
 		currentRange = TimeRange{
@@ -119,28 +119,20 @@ func CompareTimeRangesMoM(granularity string, originStart, originEnd time.Time) 
 		// 上月对应的时间范围
 		previousRange = TimeRange{
 			Start: previousStart,
-			End:   previousStart.Add(originEnd.Sub(currentStart)),
+			End:   previousEnd,
 		}
 
 		// 确保上月的结束时间不超过上月的实际结束时间
-		if previousRange.End.After(previousEnd) {
-			previousRange.End = previousEnd
+		if previousRange.End.After(prevMonthEnd) {
+			previousRange.End = prevMonthEnd
 		}
 	case ByQuarter:
 		// 计算本季度的开始月份
 		// 本季度开始时间
 		currentStart := time.Date(originEnd.Year(), getQuarterStartMonth(originEnd.Month()), 1, 0, 0, 0, 0, originEnd.Location())
 		currentQuarterStart := time.Date(originEnd.Year(), getQuarterStartMonth(originEnd.Month()), 1, 0, 0, 0, 0, originEnd.Location())
-		if originStart.After(currentStart) {
+		if originStart.After(currentQuarterStart) {
 			currentStart = originStart
-		}
-
-		previousStart := currentStart.AddDate(0, -3, 0)
-
-		// 检查上季度的日期是否有效
-		if previousStart.Month() != getQuarterStartMonth(currentQuarterStart.Month()) {
-			// 如果无效，返回上季度的最后一天
-			previousStart = time.Date(previousStart.Year(), previousStart.Month()+3, 0, previousStart.Hour(), previousStart.Minute(), previousStart.Second(), 0, previousStart.Location())
 		}
 
 		// 当前季度的时间范围
@@ -149,18 +141,41 @@ func CompareTimeRangesMoM(granularity string, originStart, originEnd time.Time) 
 			End:   originEnd,
 		}
 
-		// 计算上季度的实际结束时间
-		previousEnd := previousStart.AddDate(0, 3, 0).Add(-time.Nanosecond) // 上季度的实际结束时间为上季度的最后一刻
+		// 使用 end 时间计算其所在季度
+		endYear, endMonth, _ := originEnd.Date()
+		endQuarter := (endMonth-1)/3 + 1
 
-		// 上季度的时间范围
+		// 上个季度的起始和结束月份
+		var prevQuarterStartMonth, prevQuarterEndMonth time.Month
+		var prevQuarterYear int
+
+		if endQuarter == 1 {
+			// 如果当前是第一季度，回到上一年的第四季度
+			prevQuarterStartMonth = 10 // 10 月
+			prevQuarterEndMonth = 12   // 12 月
+			prevQuarterYear = endYear - 1
+		} else {
+			// 否则，正常回到上一季度
+			prevQuarterStartMonth = (endQuarter-2)*3 + 1
+			prevQuarterEndMonth = (endQuarter - 1) * 3
+			prevQuarterYear = endYear
+		}
+
+		// 上个季度的开始和结束时间
+		prevQuarterStart := time.Date(prevQuarterYear, prevQuarterStartMonth, 1, 0, 0, 0, 0, time.UTC)
+		prevQuarterEnd := time.Date(prevQuarterYear, prevQuarterEndMonth+1, 1, 0, 0, -1, 0, time.UTC)
+
+		previousStart := prevQuarterStart.Add(currentStart.Sub(currentQuarterStart))
+		previousEnd := previousStart.Add(originEnd.Sub(currentStart))
+
 		previousRange = TimeRange{
 			Start: previousStart,
-			End:   previousStart.Add(originEnd.Sub(currentStart)),
+			End:   previousEnd,
 		}
 
 		// 确保上季度的结束时间不超过上季度的实际结束时间
-		if previousRange.End.After(originEnd) {
-			previousRange.End = previousEnd
+		if previousRange.End.After(prevQuarterEnd) {
+			previousRange.End = prevQuarterEnd
 		}
 
 	default:
