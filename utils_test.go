@@ -19,8 +19,8 @@ func TestCompareTimeRangesMoM(t *testing.T) {
 	//originStart, _ := time.Parse("2006-01-02 15:04:05", "2024-05-30 18:10:22")
 	//now, _ := time.Parse("2006-01-02 15:04:05", "2024-08-31 18:40:59")
 
-	originStart, _ := time.Parse("2006-01-02 15:04:05", "2024-05-31 18:10:22")
-	now, _ := time.Parse("2006-01-02 15:04:05", "2024-05-31 18:40:59")
+	originStart, _ := time.Parse("2006-01-02 15:04:05", "2024-12-31 18:10:22")
+	now, _ := time.Parse("2006-01-02 15:04:05", "2024-12-31 18:40:59")
 	fmt.Println(now)
 	tests := []struct {
 		args args

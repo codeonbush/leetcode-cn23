@@ -101,7 +101,7 @@ func CompareTimeRangesMoM(granularity string, originStart, originEnd time.Time) 
 		}
 
 		//上月实际开始结束时间
-		d := currentStart.AddDate(0, -1, 0)
+		d := currentMonthStart.AddDate(0, -1, 0)
 		prevMonthStart := time.Date(d.Year(), d.Month(), 1, 0, 0, 0, 0, time.UTC)
 		prevMonthEnd := time.Date(d.Year(), d.Month()+1, 1, 0, 0, -1, 0, time.UTC)
 
@@ -125,6 +125,11 @@ func CompareTimeRangesMoM(granularity string, originStart, originEnd time.Time) 
 		// 确保上月的结束时间不超过上月的实际结束时间
 		if previousRange.End.After(prevMonthEnd) {
 			previousRange.End = prevMonthEnd
+		}
+
+		if previousRange.Start.After(prevMonthEnd) {
+			previousRange.Start = time.Date(prevMonthEnd.Year(), prevMonthEnd.Month(), prevMonthEnd.Day(), currentStart.Hour(), currentStart.Minute(), currentStart.Second(), 0, prevMonthEnd.Location())
+			previousRange.End = time.Date(prevMonthEnd.Year(), prevMonthEnd.Month(), prevMonthEnd.Day(), originEnd.Hour(), originEnd.Minute(), originEnd.Second(), 0, prevMonthEnd.Location())
 		}
 	case ByQuarter:
 		// 计算本季度的开始月份
