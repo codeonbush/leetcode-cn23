@@ -1,6 +1,8 @@
 package leetcode
 
 import (
+	"fmt"
+	"reflect"
 	"testing"
 )
 
@@ -46,7 +48,42 @@ import (
 
 // leetcode submit region begin(Prohibit modification and deletion)
 func permute(nums []int) [][]int {
+	res := [][]int{}
+	track := []int{}
+	used := make([]bool, len(nums))
 
+	backtrack(nums, track, used, &res)
+	return res
+}
+
+// 路径：记录在 track 中
+// 选择列表：nums 中不存在于 track 的那些元素
+// 结束条件：nums 中的元素全都在 track 中出现
+func backtrack(nums []int, track []int, used []bool, res *[][]int) {
+	// 触发结束条件
+	if len(track) == len(nums) {
+		// 因为 track 是全局变量，因此需要新建一个数组来存储一份全排列
+		temp := make([]int, len(track))
+		copy(temp, track)
+		*res = append(*res, temp)
+		return
+	}
+
+	for i := range nums {
+		// 排除不合法的选择
+		if used[i] {
+			// 剪枝，避免重复使用同一个数字
+			continue
+		}
+		// 做选择
+		track = append(track, nums[i])
+		used[i] = true
+		// 进入下一层决策树
+		backtrack(nums, track, used, res)
+		// 取消选择
+		track = track[:len(track)-1]
+		used[i] = false
+	}
 }
 
 //leetcode submit region end(Prohibit modification and deletion)
